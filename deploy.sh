@@ -18,4 +18,4 @@ bash tests/test_site.sh
 echo "Deploying website..."
 cp index.html "$WEB_ROOT/index.html"
 
-echo "Deployment completed successfully!"
+echo "Deployment completed successfully-!"
