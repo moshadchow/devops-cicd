@@ -1,21 +1,62 @@
-#!/bin/bash
 
-set -e
+name: CI/CD - Deploy Website
 
-PROJECT_DIR="/home/almalinux/devops-cicd"
-WEB_ROOT="/var/www/devops-cicd"
+on:
+  push:
+    branches:
+      - main
 
-echo "Starting deployment..."
+  pull_request:
+    branches:
+      - main
 
-cd "$PROJECT_DIR"
+permissions:
+  contents: read
 
-echo "Pulling latest code..."
-git pull --ff-only origin main
+jobs:
+  test:
+    name: Run Website Tests
+    runs-on: ubuntu-latest
 
-echo "Running tests..."
-bash tests/test_site.sh
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-echo "Deploying website..."
-cp index.html "$WEB_ROOT/index.html"
+      - name: Run Tests
+        run: bash tests/test_site.sh
 
-echo "Deployment completed successfully!"
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+
+    needs: test
+
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Configure SSH
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          ssh-keyscan -p "$VPS_PORT" "$VPS_HOST" >> ~/.ssh/known_hosts
+
+      - name: Deploy Website
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+        run: |
+          ssh \
+            -i ~/.ssh/deploy_key \
+            -p "$VPS_PORT" \
+            "$VPS_USER@$VPS_HOST" \
+            "bash /home/deploy/devops-cicd/deploy.sh"
