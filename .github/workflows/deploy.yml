@@ -20,7 +20,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Run Tests
         run: bash tests/test_site.sh
@@ -59,4 +59,4 @@ jobs:
             -i ~/.ssh/deploy_key \
             -p "$VPS_PORT" \
             "$VPS_USER@$VPS_HOST" \
-            "bash /home/deploy/devops-cicd/deploy.sh"
+            "bash /home/almalinux/devops-cicd/deploy.sh"
